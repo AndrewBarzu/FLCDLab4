@@ -1,7 +1,5 @@
 import collections
 from typing import Dict, Tuple, Set, List
-import os
-
 
 class FiniteAutomaton:
     def __init__(self, initialState: str, states: Set[str], finalStates: Set[str], alphabet: Set[str], transitions: Dict[Tuple[str, str], List[str]]):
@@ -14,29 +12,55 @@ class FiniteAutomaton:
     def checkIfDeterministic(self) -> bool:
         for (state1, character), state2 in self.transitions.items():
             if len(state2) > 1:
+                print("{0}, {1} has multiple states: {2}".format(state1, character, str(state2)))
                 return False
         return True
 
+    def trySequence(self, sequence: str):
+        if not self.checkIfDeterministic():
+            print("Non deterministic!")
+            return
+        idx = 0
+        currentState = self.initialState
+        if len(sequence) == 0:
+            if currentState in self.finalStates:
+                print(stringAsDelta(((currentState, "Epsilon"), ["Epsilon"])))
+                return
+            else:
+                print("Not accepted!")
+                return
+        for char in sequence:
+            if char not in self.alphabet:
+                print("Sequence contains elements that are not in the alphabet!")
+                return
+            states = self.transitions[(currentState, char)]
+            if len(states) == 0:
+                print("Not accepted!")
+                return
+            print(stringAsDelta(((currentState, sequence[idx:]), states)))
+            idx += 1
+            currentState = states[0]
+        print(stringAsDelta(((currentState, "Epsilon"), ["Epsilon"])))
 
+    @staticmethod
+    def parse(filename: str) -> 'FiniteAutomaton':
+        FA = FiniteAutomaton("", set(), set(), set(), collections.defaultdict(list))
+        with open(filename, "r") as f:
+            states = f.readline().split()
+            FA.initialState = states[0]
+            FA.states = set(states)
+            FA.finalStates = set(f.readline().split())
+            FA.alphabet = set(f.readline().split())
+            while f:
+                transition = f.readline().split()
+                if not transition:
+                    break
+                state1 = transition[0]
+                character = transition[1]
+                state2 = transition[2]
+                FA.transitions[(state1, character)].append(state2)
 
-def FAParser(filename: str) -> FiniteAutomaton:
-    FA = FiniteAutomaton("", set(), set(), set(), collections.defaultdict(list))
-    with open(filename, "r") as f:
-        states = f.readline().split()
-        FA.initialState = states[0]
-        FA.states = set(states)
-        FA.finalStates = set(f.readline().split())
-        FA.alphabet = set(f.readline().split())
-        while f:
-            transition = f.readline().split()
-            if not transition:
-                break
-            state1 = transition[0]
-            character = transition[1]
-            state2 = transition[2]
-            FA.transitions[(state1, character)].append(state2)
-
-    return FA
+        return FA
 
 def stringAsDelta(entry: Tuple[Tuple[str, str], List[str]]) -> str:
     state = "Epsilon" if len(entry[1]) == 0 else entry[1][0]
@@ -49,7 +73,7 @@ def getTransitions(FA: FiniteAutomaton) -> str:
     return res
 
 if __name__ == '__main__':
-    FA = FAParser('number_constant_FA.in')
+    FA = FiniteAutomaton.parse('identifier_FA.in')
 
     menu = """1. Show states
 2. Show final states
@@ -58,32 +82,12 @@ if __name__ == '__main__':
 5. Check if sequence is accepted by the FA
 0. Exit"""
 
-    def trySequence():
+    def inputSeq():
         if not FA.checkIfDeterministic():
             print("Non deterministic!")
             return ""
         sequence = input("Sequence = ")
-        idx = 0
-        currentState = FA.initialState
-        if len(sequence) == 0:
-            if currentState in FA.finalStates:
-                print(stringAsDelta(((currentState, "Epsilon"), ["Epsilon"])))
-                return ""
-            else:
-                print("Not accepted!")
-                return ""
-        for char in sequence:
-            if char not in FA.alphabet:
-                print("Sequence contains elements that are not in the alphabet!")
-                return ""
-            states = FA.transitions[(currentState, char)]
-            if len(states) == 0:
-                print("Not accepted!")
-                return ""
-            print(stringAsDelta(((currentState, sequence[idx:]), states)))
-            idx += 1
-            currentState = states[0]
-        print(stringAsDelta(((currentState, "Epsilon"), ["Epsilon"])))
+        FA.trySequence(sequence)
         return ""
 
     commands = {
@@ -91,7 +95,7 @@ if __name__ == '__main__':
         2: lambda: FA.finalStates,
         3: lambda: FA.alphabet,
         4: lambda: getTransitions(FA),
-        5: lambda: trySequence(),
+        5: lambda: inputSeq(),
         0: lambda: exit(0)
     }
     while True:
