@@ -58,7 +58,7 @@ class FiniteAutomaton:
                 state1 = transition[0]
                 character = transition[1]
                 state2 = transition[2]
-                if (state1, character) in FA.transitions.keys() and state2 not in FA.transitions[(state1, character)]:
+                if (state1, character) not in FA.transitions.keys() or state2 not in FA.transitions[(state1, character)]:
                     FA.transitions[(state1, character)].append(state2)
 
         return FA
